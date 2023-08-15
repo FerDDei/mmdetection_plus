@@ -131,6 +131,54 @@ def imrescale(
     else:
         return rescaled_img
 
+import numpy as np
+
+@TRANSFORMS.register_module()
+class CropImage:
+    """Crop images using a sliding window approach.
+
+    This transform crops the input image into smaller chunks using a sliding window approach.
+
+    Required Keys:
+    - img
+
+    Modified Keys:
+    - img
+
+    Args:
+        crop_size (int or tuple): Desired size for the cropped images. Defaults to (500, 500).
+        stride (int or tuple): Stride or step size for the sliding window. Defaults to (500, 500).
+    """
+
+    def __init__(self, crop_size=(500, 500), stride=(500, 500)):
+        if isinstance(crop_size, int):
+            self.crop_size = (crop_size, crop_size)
+        else:
+            self.crop_size = crop_size
+
+        if isinstance(stride, int):
+            self.stride = (stride, stride)
+        else:
+            self.stride = stride
+
+    def _crop_image(self, img):
+        """Crop the image into smaller chunks."""
+        h, w, _ = img.shape
+        crops = []
+        for i in range(0, h - self.crop_size[0] + 1, self.stride[0]):
+            for j in range(0, w - self.crop_size[1] + 1, self.stride[1]):
+                crop = img[i:i+self.crop_size[0], j:j+self.crop_size[1]]
+                crops.append(crop)
+        return crops
+
+    def __call__(self, results):
+        """Apply the cropping to the input data."""
+        results['img'] = self._crop_image(results['img'])
+        return results
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(crop_size={self.crop_size}, stride={self.stride})"
+
 
 @TRANSFORMS.register_module()
 class Resize(MMCV_Resize):
